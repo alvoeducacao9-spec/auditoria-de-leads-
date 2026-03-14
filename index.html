@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente de Auditoria de Leads</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- STYLES -->
+    <style>
+        :root {
+            --bg-main: #0F0F0F;
+            --bg-card: #1A1A1A;
+            --bg-input: #242424;
+            --border: #2A2A2A;
+            --whatsapp: #25D366;
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0A0;
+            --hot: #FF6B35;
+            --warm: #F59E0B;
+            --cold: #3B82F6;
+            --positive: #22C55E;
+            --negative: #EF4444;
+            --neutral: #6B7280;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Header & Progress */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--whatsapp);
+        }
+
+        .progress-container {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 2rem;
+            padding: 0 10px;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border);
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .progress-line-active {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            height: 2px;
+            background: var(--whatsapp);
+            z-index: 2;
+            transform: translateY(-50%);
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            z-index: 3;
+            transition: var(--transition);
+            color: var(--text-secondary);
+        }
+
+        .step-dot.active {
+            border-color: var(--whatsapp);
+            color: var(--whatsapp);
+            background: var(--bg-main);
+            box-shadow: 0 0 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .step-dot.completed {
+            background: var(--whatsapp);
+            border-color: var(--whatsapp);
+            color: var(--bg-main);
+        }
+
+        /* Lead Info Section */
+        .lead-info-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .input-group input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--whatsapp);
+        }
+
+        .btn-whatsapp-send {
+            flex: 1.5;
+            background: #075E54;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-whatsapp-send:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(18, 140, 126, 0.3);
+        }
+
+        /* Steps Visibility */
+        .step {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Step 1: Input */
+        .tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 0.3rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 0.7rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 9px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--bg-input);
+            color: var(--whatsapp);
+        }
+
+        .input-area {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .instruction {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .example {
+            background: var(--bg-input);
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--whatsapp);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+            resize: none;
+            font-family: inherit;
+            margin-bottom: 0.5rem;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--whatsapp);
+        }
+
+        .char-count {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--whatsapp);
+            background: rgba(37, 211, 102, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .preview-container {
+            position: relative;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .btn-remove {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--whatsapp);
+            color: var(--bg-main);
+            border: none;
+            border-radius: 12px;
+            padding: 1.2rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.2);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Step 2: Audit Results */
+        .result-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .temp-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+        }
+
+        .temp-quente { background: rgba(255, 107, 53, 0.15); color: var(--hot); border: 1px solid var(--hot); }
+        .temp-morno { background: rgba(245, 158, 11, 0.15); color: var(--warm); border: 1px solid var(--warm); }
+        .temp-frio { background: rgba(59, 130, 246, 0.15); color: var(--cold); border: 1px solid var(--cold); }
+
+        .score-section {
+            margin-bottom: 2rem;
+        }
+
+        .score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-bg {
+            height: 10px;
+            background: var(--bg-input);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 1s ease-out;
+        }
+
+        .summary-text {
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .signals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+
+        .signal-item {
+            background: var(--bg-input);
+            padding: 0.8rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+        }
+
+        .signal-positive { border-color: rgba(34, 197, 94, 0.2); }
+        .signal-negative { border-color: rgba(239, 68, 68, 0.2); }
+        .signal-neutral { border-color: rgba(107, 114, 128, 0.2); }
+
+        .dot-signal {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Step 3: Objectives */
+        .objective-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .objectives-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .objective-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.2rem;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .objective-btn:hover {
+            border-color: var(--whatsapp);
+            background: rgba(37, 211, 102, 0.03);
+        }
+
+        .objective-btn.active {
+            border-color: var(--whatsapp);
+            background: rgba(37, 211, 102, 0.1);
+            box-shadow: 0 0 15px rgba(37, 211, 102, 0.1);
+        }
+
+        .obj-icon { font-size: 1.5rem; }
+        .obj-name { font-weight: 700; font-size: 0.9rem; }
+        .obj-desc { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.3; }
+
+        /* Step 4: Final Response */
+        .response-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--whatsapp);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: var(--transition);
+        }
+
+        .copy-btn:hover {
+            background: var(--border);
+        }
+
+        .response-text {
+            white-space: pre-wrap;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--bg-input);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tactics-section {
+            margin-top: 1.5rem;
+        }
+
+        .tactics-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 0.8rem;
+            display: block;
+        }
+
+        .tactics-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .tactic-tag {
+            background: rgba(37, 211, 102, 0.1);
+            color: var(--whatsapp);
+            padding: 0.3rem 0.8rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .actions-footer {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--text-secondary);
+        }
+
+        /* Loading & Error */
+        .loading-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(37, 211, 102, 0.1);
+            border-top: 4px solid var(--whatsapp);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--negative);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            margin-bottom: 1rem;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-card) 50%, var(--bg-input) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Modal Success */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modal-in {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Response Options */
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .option-card:hover {
+            border-color: var(--whatsapp);
+            background: rgba(37, 211, 102, 0.05);
+        }
+
+        .option-card.selected {
+            border-color: var(--whatsapp);
+            background: rgba(37, 211, 102, 0.1);
+            box-shadow: 0 0 0 2px var(--whatsapp);
+        }
+
+        .option-badge {
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            background: var(--whatsapp);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .option-card.selected .option-badge {
+            display: block;
+        }
+
+        /* Login Screen */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--whatsapp);
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .login-input-group {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .login-input-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .login-input-group input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .login-input-group input:focus {
+            outline: none;
+            border-color: var(--whatsapp);
+            box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.1);
+        }
+
+        .user-profile {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .user-email {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: none;
+            color: var(--negative);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .objectives-grid, .signals-grid {
+                grid-template-columns: 1fr;
+            }
+            .actions-footer {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-overlay">
+        <div class="login-card">
+            <span class="login-logo">🚀</span>
+            <h2 class="login-title">Acesso Vendedor</h2>
+            <p class="login-subtitle">Entre com suas credenciais para auditar leads</p>
+            
+            <div id="loginError" class="error-msg" style="margin-bottom: 1.5rem;"></div>
+
+            <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
+                <div class="login-input-group">
+                    <label for="loginEmail">E-mail</label>
+                    <input type="email" id="loginEmail" placeholder="vendedor@empresa.com" required>
+                </div>
+                <div class="login-input-group">
+                    <label for="loginPassword">Senha</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" id="btnLogin" class="btn-primary">
+                    Entrar no Painel
+                </button>
+                <button type="button" id="btnSignUp" class="btn-secondary" onclick="handleSignUp(event)" style="margin-top: 0.5rem;">
+                    Criar Nova Conta
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- USER PROFILE -->
+    <div id="userProfile" class="user-profile" style="display: none;">
+        <span class="user-email" id="displayUserEmail"></span>
+        <button class="btn-logout" onclick="handleLogout()">Sair</button>
+    </div>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <h1>Agente de Auditoria de Leads</h1>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Qualificação inteligente para WhatsApp</p>
+        </header>
+
+        <!-- PROGRESS INDICATOR -->
+        <div class="progress-container">
+            <div class="progress-line"></div>
+            <div id="progressLineActive" class="progress-line-active"></div>
+            <div class="step-dot active" data-step="1">1</div>
+            <div class="step-dot" data-step="2">2</div>
+            <div class="step-dot" data-step="3">3</div>
+            <div class="step-dot" data-step="4">4</div>
+        </div>
+
+        <div id="errorMessage" class="error-msg"></div>
+
+        <!-- STEP 1: INPUT -->
+        <div id="step1" class="step active">
+            <div class="lead-info-section">
+                <div class="input-group">
+                    <label for="leadName">Nome do Lead</label>
+                    <input type="text" id="leadName" placeholder="Ex: João Silva">
+                </div>
+                <div class="input-group">
+                    <label for="leadPhone">WhatsApp (com DDD)</label>
+                    <input type="tel" id="leadPhone" placeholder="Ex: 11999999999">
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('text')">Modo A: Texto</div>
+                <div class="tab" onclick="switchTab('image')">Modo B: Print</div>
+            </div>
+
+            <div id="textInputArea" class="input-area">
+                <span class="instruction">Use [LEAD] e [VENDEDOR] para identificar os participantes:</span>
+                <div class="example">
+                    [LEAD] Oi, vi o anúncio de vocês...<br>
+                    [VENDEDOR] Olá! Como posso ajudar?
+                </div>
+                <textarea id="conversaText" placeholder="Cole a conversa aqui..." oninput="updateCharCount()"></textarea>
+                <div class="char-count"><span id="charCount">0</span> caracteres</div>
+            </div>
+
+            <div id="imageInputArea" class="input-area" style="display: none;">
+                <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <span class="upload-icon">📸</span>
+                    <p style="font-weight: 600;">Clique ou arraste o print aqui</p>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">PNG, JPG ou WEBP</p>
+                    <input type="file" id="fileInput" hidden accept="image/*" onchange="handleFileSelect(event)">
+                </div>
+                <div id="previewContainer" class="preview-container">
+                    <img id="imagePreview" class="preview-image">
+                    <button class="btn-remove" onclick="removeImage()">×</button>
+                </div>
+            </div>
+
+            <button id="btnAnalisar" class="btn-primary" onclick="analisarConversa()">
+                Analisar conversa e qualificar lead
+            </button>
+        </div>
+
+        <!-- LOADING OVERLAY -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <p id="loadingText" style="color: var(--whatsapp); font-weight: 600;">A IA está auditando o lead...</p>
+        </div>
+
+        <!-- STEP 2: AUDIT RESULTS -->
+        <div id="step2" class="step">
+            <div class="result-card">
+                <div id="tempBadge" class="temp-badge">🔥 Quente</div>
+                
+                <div class="score-section">
+                    <div class="score-header">
+                        <span class="score-label">Lead Score</span>
+                        <span id="scoreValue" class="score-value">85</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div id="scoreFill" class="progress-bar-fill" style="width: 85%;"></div>
+                    </div>
+                </div>
+
+                <p id="summaryText" class="summary-text">O lead demonstrou alto interesse no produto X e perguntou sobre formas de pagamento, indicando urgência.</p>
+
+                <div id="signalsGrid" class="signals-grid">
+                    <!-- Signals injected here -->
+                </div>
+            </div>
+            <button class="btn-primary" onclick="goToStep3()">
+                Prosseguir para seleção de objetivo
+            </button>
+        </div>
+
+        <!-- STEP 3: OBJECTIVES -->
+        <div id="step3" class="step">
+            <h2 class="objective-title">Qual é o seu objetivo com esse lead?</h2>
+            <div class="objectives-grid">
+                <div class="objective-btn" onclick="selectObjective(1)">
+                    <span class="obj-icon">📞</span>
+                    <span class="obj-name">Agendar call</span>
+                    <span class="obj-desc">Reunião por vídeo para apresentar proposta</span>
+                </div>
+                <div class="objective-btn" onclick="selectObjective(2)">
+                    <span class="obj-icon">💬</span>
+                    <span class="obj-name">Fechar no Whats</span>
+                    <span class="obj-desc">Converter direto no chat agora</span>
+                </div>
+                <div class="objective-btn" onclick="selectObjective(3)">
+                    <span class="obj-icon">📱</span>
+                    <span class="obj-name">Ligação</span>
+                    <span class="obj-desc">Aprofundar relação por voz</span>
+                </div>
+                <div class="objective-btn" onclick="selectObjective(4)">
+                    <span class="obj-icon">🎯</span>
+                    <span class="obj-name">Consultoria</span>
+                    <span class="obj-desc">Sessão diagnóstico de alto valor</span>
+                </div>
+            </div>
+            <button id="btnGerarResposta" class="btn-primary" disabled onclick="gerarResposta()">
+                Gerar resposta personalizada
+            </button>
+        </div>
+
+        <!-- STEP 4: FINAL RESPONSE -->
+        <div id="step4" class="step">
+            <h2 class="objective-title" style="margin-bottom: 1rem;">Escolha a melhor resposta</h2>
+            <div id="optionsContainer" class="options-container">
+                <!-- 3 options will be injected here -->
+            </div>
+
+            <div class="response-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span class="tactics-title" style="margin-bottom: 0;">Resposta Selecionada</span>
+                    <button class="copy-btn" onclick="copyResponse()" style="position: static; padding: 4px 12px;">
+                        <span id="copyIcon">📋</span> <span id="copyText">Copiar</span>
+                    </button>
+                </div>
+                <div id="finalResponse" class="response-text"></div>
+                
+                <div class="tactics-section">
+                    <span class="tactics-title">Táticas utilizadas</span>
+                    <div id="tacticsList" class="tactics-list">
+                        <!-- Tactics tags injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions-footer">
+                <button id="btnSendWebhook" class="btn-whatsapp-send" onclick="enviarWebhook()">
+                    <span>🚀</span> Enviar para n8n
+                </button>
+                <button class="btn-secondary" onclick="gerarResposta()">Regenerar</button>
+                <button class="btn-primary" style="flex: 1;" onclick="resetFlow()">Nova Análise</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">✅</div>
+            <div class="modal-title">foi enviado</div>
+            <button class="btn-primary" style="width: 100%;" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT: State Management -->
+    <script type="module">
+        import { supabase } from './src/supabase.ts';
+
+        const state = {
+            currentStep: 1,
+            inputMode: 'text',
+            apiKey: process.env.GEMINI_API_KEY || '',
+            conversa: '',
+            imageData: null,
+            imageMimeType: '',
+            auditResult: null,
+            selectedObjective: null,
+            generatedResponse: null,
+            leadName: '',
+            leadPhone: '',
+            selectedResponseIndex: 0,
+            user: null
+        };
+        window.state = state;
+
+        // Auth Listener
+        supabase.auth.onAuthStateChange((event, session) => {
+            const user = session?.user || null;
+            if (user) {
+                state.user = user;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('userProfile').style.display = 'flex';
+                document.getElementById('displayUserEmail').textContent = user.email;
+            } else {
+                state.user = null;
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('userProfile').style.display = 'none';
+                resetFlow();
+            }
+        });
+
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('btnLogin');
+            const errorDiv = document.getElementById('loginError');
+
+            btn.disabled = true;
+            btn.textContent = 'Autenticando...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+            } catch (err) {
+                errorDiv.textContent = 'E-mail ou senha inválidos: ' + err.message;
+                errorDiv.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Entrar no Painel';
+            }
+        };
+
+        window.handleSignUp = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('btnSignUp');
+            const errorDiv = document.getElementById('loginError');
+
+            if (!email || !password) {
+                errorDiv.textContent = 'Preencha e-mail e senha para criar conta.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Criando conta...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+                if (signUpError) throw signUpError;
+
+                showError('Conta criada com sucesso! Você já está logado.', false);
+                btn.disabled = false;
+                btn.textContent = 'Criar Nova Conta';
+            } catch (err) {
+                console.error('Erro ao criar conta:', err);
+                errorDiv.textContent = 'Erro ao criar conta: ' + err.message;
+                errorDiv.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Criar Nova Conta';
+            }
+        };
+
+        window.handleLogout = async () => {
+            try {
+                await supabase.auth.signOut();
+            } catch (err) {
+                console.error('Erro ao sair:', err);
+            }
+        };
+
+        const objectives = [
+            "Agendar uma call de fechamento — reunião por vídeo para apresentar proposta",
+            "Fechar no WhatsApp — converter direto no chat",
+            "Agendar ligação telefônica — aprofundar relação por voz",
+            "Consultoria estratégica gratuita — sessão diagnóstico de alto valor"
+        ];
+
+        function updateProgress() {
+            const dots = document.querySelectorAll('.step-dot');
+            const line = document.getElementById('progressLineActive');
+            
+            dots.forEach(dot => {
+                const step = parseInt(dot.dataset.step);
+                dot.classList.remove('active', 'completed');
+                if (step === state.currentStep) dot.classList.add('active');
+                if (step < state.currentStep) dot.classList.add('completed');
+            });
+
+            const progress = ((state.currentStep - 1) / 3) * 100;
+            line.style.width = `${progress}%`;
+        }
+
+        function showError(msg, isError = true) {
+            const errDiv = document.getElementById('errorMessage');
+            if (!errDiv) return;
+            errDiv.textContent = msg;
+            errDiv.style.display = 'block';
+            errDiv.style.background = isError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)';
+            errDiv.style.color = isError ? 'var(--negative)' : 'var(--positive)';
+            errDiv.style.borderColor = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)';
+            
+            setTimeout(() => { errDiv.style.display = 'none'; }, 5000);
+        }
+
+        window.updateProgress = updateProgress;
+        window.showError = showError;
+        window.objectives = objectives;
+    </script>
+
+    <!-- JAVASCRIPT: API Integration -->
+    <script type="module">
+        window.callGemini = async function(prompt, isImage = false) {
+            if (!state.apiKey) {
+                throw new Error('API Key não encontrada no ambiente. Verifique as configurações do projeto.');
+            }
+
+            const model = 'gemini-3-flash-preview';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.apiKey}`;
+
+            const contents = [];
+            if (isImage && state.imageData) {
+                contents.push({
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: state.imageMimeType, data: state.imageData } }
+                    ]
+                });
+            } else {
+                contents.push({
+                    parts: [{ text: prompt }]
+                });
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error?.message || 'Erro na chamada da API');
+            }
+
+            const data = await response.json();
+            const text = data.candidates[0].content.parts[0].text;
+            
+            // Clean JSON response if model adds markdown blocks
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
+            throw new Error('A IA não retornou um formato JSON válido.');
+        }
+    </script>
+
+    <!-- JAVASCRIPT: UI Functions -->
+    <script type="module">
+        function switchTab(mode) {
+            state.inputMode = mode;
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            if (mode === 'text') tabs[0].classList.add('active');
+            else tabs[1].classList.add('active');
+            
+            document.getElementById('textInputArea').style.display = mode === 'text' ? 'block' : 'none';
+            document.getElementById('imageInputArea').style.display = mode === 'image' ? 'block' : 'none';
+        }
+        window.switchTab = switchTab;
+
+        function updateCharCount() {
+            const text = document.getElementById('conversaText').value;
+            document.getElementById('charCount').textContent = text.length;
+        }
+        window.updateCharCount = updateCharCount;
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            processFile(file);
+        }
+        window.handleFileSelect = handleFileSelect;
+
+        function processFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Por favor, selecione uma imagem válida.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result.split(',')[1];
+                state.imageData = base64;
+                state.imageMimeType = file.type;
+                
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('previewContainer').style.display = 'block';
+                document.getElementById('dropZone').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        window.processFile = processFile;
+
+        function removeImage() {
+            state.imageData = null;
+            document.getElementById('previewContainer').style.display = 'none';
+            document.getElementById('dropZone').style.display = 'block';
+            document.getElementById('fileInput').value = '';
+        }
+        window.removeImage = removeImage;
+
+        function renderAuditResults(data) {
+            const badge = document.getElementById('tempBadge');
+            badge.textContent = data.temperatura.toUpperCase();
+            badge.className = 'temp-badge temp-' + data.temperatura.toLowerCase();
+            
+            document.getElementById('scoreValue').textContent = data.score;
+            const fill = document.getElementById('scoreFill');
+            fill.style.width = data.score + '%';
+            
+            // Color fill based on score
+            if (data.score >= 70) fill.style.background = 'var(--hot)';
+            else if (data.score >= 35) fill.style.background = 'var(--warm)';
+            else fill.style.background = 'var(--cold)';
+
+            document.getElementById('summaryText').textContent = data.resumo;
+
+            const grid = document.getElementById('signalsGrid');
+            grid.innerHTML = '';
+            data.sinais.forEach(s => {
+                const item = document.createElement('div');
+                item.className = `signal-item signal-${s.tipo}`;
+                
+                const dot = document.createElement('div');
+                dot.className = 'dot-signal';
+                dot.style.background = `var(--${s.tipo})`;
+                
+                item.appendChild(dot);
+                item.innerHTML += s.texto;
+                grid.appendChild(item);
+            });
+        }
+        window.renderAuditResults = renderAuditResults;
+
+        function selectObjective(id) {
+            state.selectedObjective = id;
+            document.querySelectorAll('.objective-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx + 1 === id);
+            });
+            document.getElementById('btnGerarResposta').disabled = false;
+        }
+        window.selectObjective = selectObjective;
+
+        function renderResponse(data) {
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            state.selectedResponseIndex = 0;
+            
+            data.opcoes.forEach((opcao, index) => {
+                const card = document.createElement('div');
+                card.className = `option-card ${index === 0 ? 'selected' : ''}`;
+                card.innerHTML = `
+                    <div class="option-badge">Selecionada</div>
+                    ${opcao.mensagem.replace(/\n/g, '<br>')}
+                `;
+                card.onclick = () => selectResponseOption(index);
+                optionsContainer.appendChild(card);
+            });
+
+            updateSelectedResponse();
+        }
+        window.renderResponse = renderResponse;
+
+        function selectResponseOption(index) {
+            state.selectedResponseIndex = index;
+            const cards = document.querySelectorAll('.option-card');
+            cards.forEach((card, idx) => {
+                card.classList.toggle('selected', idx === index);
+            });
+            updateSelectedResponse();
+        }
+        window.selectResponseOption = selectResponseOption;
+
+        function updateSelectedResponse() {
+            const selectedOpcao = state.generatedResponse.opcoes[state.selectedResponseIndex];
+            document.getElementById('finalResponse').textContent = selectedOpcao.mensagem;
+            
+            const list = document.getElementById('tacticsList');
+            list.innerHTML = '';
+            selectedOpcao.taticas.forEach(t => {
+                const tag = document.createElement('span');
+                tag.className = 'tactic-tag';
+                tag.textContent = t;
+                list.appendChild(tag);
+            });
+        }
+        window.updateSelectedResponse = updateSelectedResponse;
+
+        async function copyResponse() {
+            const text = state.generatedResponse.opcoes[state.selectedResponseIndex].mensagem;
+            try {
+                await navigator.clipboard.writeText(text);
+                const btnText = document.getElementById('copyText');
+                const btnIcon = document.getElementById('copyIcon');
+                btnText.textContent = 'Copiado!';
+                btnIcon.textContent = '✓';
+                setTimeout(() => {
+                    btnText.textContent = 'Copiar';
+                    btnIcon.textContent = '📋';
+                }, 2000);
+            } catch (err) {
+                showError('Erro ao copiar texto.');
+            }
+        }
+        window.copyResponse = copyResponse;
+
+        async function enviarWebhook() {
+            const text = state.generatedResponse.opcoes[state.selectedResponseIndex].mensagem;
+            let phone = state.leadPhone.replace(/\D/g, '');
+            
+            if (!phone) {
+                showError('Por favor, informe o telefone do lead na Etapa 1.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSendWebhook');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Enviando...';
+
+            // URL específica do n8n fornecida pelo usuário
+            const webhookUrl = "https://n8n.raysouza.com.br/webhook/whatsapp";
+            
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lead_nome: state.leadName || 'Não informado',
+                        lead_whatsapp: phone,
+                        mensagem_ia: text,
+                        objetivo: objectives[state.selectedObjective - 1],
+                        vendedor_email: state.user?.email || 'Desconhecido',
+                        data_envio: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok || response.status === 0) {
+                    document.getElementById('successModal').style.display = 'flex';
+                    btn.innerHTML = '<span>✅</span> Enviado!';
+                    
+                    // Re-enable button after 2 seconds to allow sending again
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error('Falha ao enviar para o webhook.');
+                }
+            } catch (e) {
+                console.error('Erro ao disparar webhook:', e);
+                showError('Erro ao enviar para o n8n. Verifique o console.');
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+        window.enviarWebhook = enviarWebhook;
+
+        function closeModal() {
+            document.getElementById('successModal').style.display = 'none';
+        }
+        window.closeModal = closeModal;
+
+        function resetFlow() {
+            state.currentStep = 1;
+            state.conversa = '';
+            state.imageData = null;
+            state.auditResult = null;
+            state.selectedObjective = null;
+            state.generatedResponse = null;
+            state.leadName = '';
+            state.leadPhone = '';
+            
+            // Clear inputs
+            document.getElementById('conversaText').value = '';
+            document.getElementById('leadName').value = '';
+            document.getElementById('leadPhone').value = '';
+            
+            // Reset UI elements
+            removeImage();
+            document.querySelectorAll('.objective-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btnGerarResposta').disabled = true;
+            
+            const btnWebhook = document.getElementById('btnSendWebhook');
+            if (btnWebhook) {
+                btnWebhook.disabled = false;
+                btnWebhook.innerHTML = '<span>🚀</span> Enviar para n8n';
+            }
+            
+            document.getElementById('optionsContainer').innerHTML = '';
+            
+            // Reset visibility of all steps and overlays
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            steps.forEach(id => {
+                const el = document.getElementById(id);
+                el.style.display = ''; // Clear inline styles
+                el.classList.remove('active');
+            });
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+            // Set initial step
+            document.getElementById('step1').classList.add('active');
+            
+            // Reset to first tab
+            switchTab('text');
+            
+            updateProgress();
+            updateCharCount();
+        }
+        window.resetFlow = resetFlow;
+    </script>
+
+    <!-- JAVASCRIPT: Event Handlers -->
+    <script type="module">
+        async function analisarConversa() {
+            const text = document.getElementById('conversaText').value.trim();
+            if (state.inputMode === 'text' && !text) {
+                showError('Por favor, cole a conversa para analisar.');
+                return;
+            }
+            if (state.inputMode === 'image' && !state.imageData) {
+                showError('Por favor, faça o upload de um print.');
+                return;
+            }
+
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingText').textContent = 'A IA está auditando o lead...';
+
+            try {
+                const prompt = `Você é um especialista em qualificação de leads. Analise a conversa fornecida e retorne APENAS um JSON válido.
+                Conversa: ${text || 'Analisar imagem anexa'}
+                
+                JSON Schema:
+                {
+                    "temperatura": "quente" | "morno" | "frio",
+                    "score": número de 0 a 100,
+                    "resumo": "2-3 frases sobre a situação do lead",
+                    "sinais": [
+                        {"tipo": "positive" | "negative" | "neutral", "texto": "sinal identificado"}
+                    ]
+                }`;
+
+                const result = await callGemini(prompt, state.inputMode === 'image');
+                state.auditResult = result;
+                
+                renderAuditResults(result);
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('step2').classList.add('active');
+                state.currentStep = 2;
+                updateProgress();
+            } catch (err) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('step1').style.display = 'block';
+                showError(err.message);
+            }
+        }
+        window.analisarConversa = analisarConversa;
+
+        function goToStep3() {
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+            state.currentStep = 3;
+            updateProgress();
+        }
+        window.goToStep3 = goToStep3;
+
+        async function gerarResposta() {
+            state.leadName = document.getElementById('leadName').value.trim();
+            state.leadPhone = document.getElementById('leadPhone').value.trim();
+
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step4').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingText').textContent = 'Criando resposta persuasiva...';
+
+            try {
+                const objetivo = objectives[state.selectedObjective - 1];
+                const prompt = `Você é um expert em copywriting de vendas para WhatsApp. Gere 3 opções de mensagens curtas, naturais, humanas e persuasivas para o vendedor escolher. Retorne APENAS um JSON.
+                
+                Contexto:
+                Nome do Lead: ${state.leadName || 'Não informado'}
+                Lead Temperatura: ${state.auditResult.temperatura}
+                Score: ${state.auditResult.score}/100
+                Resumo da conversa: ${state.auditResult.resumo}
+                Objetivo: ${objetivo}
+                
+                Instrução extra: 
+                1. Gere 3 opções variando o tom (ex: uma mais direta, uma mais empática, uma com pergunta aberta).
+                2. Mantenha as mensagens CURTAS e fáceis de ler no celular.
+                3. Se o nome do lead estiver disponível, use-o de forma natural.
+                
+                JSON Schema:
+                {
+                    "opcoes": [
+                        {
+                            "mensagem": "opção 1...",
+                            "taticas": ["tática A", "tática B"]
+                        },
+                        {
+                            "mensagem": "opção 2...",
+                            "taticas": ["tática C", "tática D"]
+                        },
+                        {
+                            "mensagem": "opção 3...",
+                            "taticas": ["tática E", "tática F"]
+                        }
+                    ]
+                }`;
+
+                const result = await callGemini(prompt);
+                state.generatedResponse = result;
+                
+                renderResponse(result);
+                
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('step3').style.display = 'none'; // Ensure step 3 is hidden
+                document.getElementById('step4').style.display = 'block';
+                document.getElementById('step4').classList.add('active');
+                state.currentStep = 4;
+                updateProgress();
+            } catch (err) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('step3').style.display = 'block';
+                showError(err.message);
+            }
+        }
+        window.gerarResposta = gerarResposta;
+
+        // Drag and Drop handlers
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            processFile(file);
+        });
+
+        // Enter to submit in textarea
+        document.getElementById('conversaText').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                analisarConversa();
+            }
+        });
+    </script>
+</body>
+</html>
